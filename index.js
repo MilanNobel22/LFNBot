@@ -1,7 +1,22 @@
 ﻿const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
+const http = require('node:http');
 require('dotenv').config();
+
+const PORT = process.env.PORT || 3000;
+
+const server = http.createServer((req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/plain; charset=utf-8'
+    });
+
+    res.end('LFNBot is online!');
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+    console.log('[WEB] Webserver gestart op poort ' + PORT);
+});
 
 const client = new Client({
     intents: [
@@ -13,18 +28,20 @@ const client = new Client({
 client.commands = new Collection();
 
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync(commandsPath)
+    .filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = require(filePath);
+
     if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
     }
 }
 
 client.once('ready', () => {
-    console.log(`[ONLINE] Ingelogd als ${client.user.tag}`);
+    console.log('[ONLINE] Ingelogd als ' + client.user.tag);
     client.user.setActivity('Management Systeem', { type: 3 });
 });
 
@@ -37,11 +54,15 @@ client.on('interactionCreate', async interaction => {
     try {
         await command.execute(interaction);
     } catch (error) {
-        console.error(`Fout bij uitvoering van command ${interaction.commandName}:`, error);
-        
-        const errorContent = { 
-            content: 'Er is een interne fout opgetreden bij de uitvoering van dit command.', 
-            ephemeral: true 
+        console.error(
+            'Fout bij uitvoering van command ' +
+            interaction.commandName + ':',
+            error
+        );
+
+        const errorContent = {
+            content: 'Er is een interne fout opgetreden bij de uitvoering van dit command.',
+            ephemeral: true
         };
 
         if (interaction.deferred || interaction.replied) {
